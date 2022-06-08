@@ -1,4 +1,4 @@
-package adapter
+package tagmapper
 
 import (
 	"fmt"
@@ -48,6 +48,10 @@ func Decode(decoder TagDecoder, outputStruct interface{}) error {
 		rawValue, err := decoder.DecodeField(info[i])
 		if err != nil {
 			return fmt.Errorf("error decoding field %v: %s", t.Field(i), err)
+		}
+
+		if rawValue == nil {
+			continue
 		}
 
 		v.Elem().Field(i).Set(reflect.ValueOf(rawValue))
