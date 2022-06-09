@@ -3,6 +3,7 @@ package tagmapper
 import (
 	"fmt"
 	"reflect"
+	"unicode"
 
 	"github.com/vingarcia/tagmapper/helpers/types"
 	"github.com/vingarcia/tagmapper/tags"
@@ -26,10 +27,14 @@ type TagDecoder interface {
 }
 
 type Field struct {
+	idx int
+
 	Tags map[string]string
 	Name string
 	Kind reflect.Kind
 	Type reflect.Type
+
+	IsEmbeded bool
 }
 
 func Decode(decoder TagDecoder, outputStruct interface{}) error {
@@ -40,27 +45,27 @@ func Decode(decoder TagDecoder, outputStruct interface{}) error {
 	}
 	t = t.Elem()
 
-	info, err := getStructInfo(t)
+	fields, err := getStructInfo(t)
 	if err != nil {
 		return err
 	}
 
-	for i := 0; i < t.NumField(); i++ {
-		rawValue, err := decoder.DecodeField(info[i])
+	for _, field := range fields {
+		rawValue, err := decoder.DecodeField(field)
 		if err != nil {
-			return fmt.Errorf("error decoding field %v: %s", t.Field(i), err)
+			return fmt.Errorf("error decoding field %v: %s", t.Field(field.idx), err)
 		}
 
 		if rawValue == nil {
 			continue
 		}
 
-		convertedValue, err := types.NewConverter(rawValue).Convert(info[i].Type)
+		convertedValue, err := types.NewConverter(rawValue).Convert(field.Type)
 		if err != nil {
 			return err
 		}
 
-		v.Elem().Field(i).Set(convertedValue)
+		v.Elem().Field(field.idx).Set(convertedValue)
 	}
 	return nil
 }
@@ -80,15 +85,20 @@ func getStructInfo(t reflect.Type) ([]Field, error) {
 	info = []Field{}
 	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
-		if field.Anonymous {
+		// If it is unexported:
+		if unicode.IsLower(rune(field.Name[0])) {
 			continue
 		}
 
 		info = append(info, Field{
+			idx:  i,
 			Tags: tags.ParseTags(string(field.Tag)),
 			Name: field.Name,
 			Type: field.Type,
 			Kind: field.Type.Kind(),
+
+			// ("Anonymous" is the name for embeded fields on the stdlib)
+			IsEmbeded: field.Anonymous,
 		})
 	}
 

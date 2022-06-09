@@ -48,6 +48,86 @@ func TestUnmarshal(t *testing.T) {
 		tt.AssertEqual(t, output.Attr2, "placeholder")
 	})
 
+	t.Run("should be able to fill multiple attributes", func(t *testing.T) {
+		decoder := FuncTagDecoder(func(field tagmapper.Field) (interface{}, error) {
+			v := map[string]string{
+				"f1": "v1",
+				"f2": "v2",
+				"f3": "v3",
+			}[field.Tags["map"]]
+
+			return v, nil
+		})
+
+		var output struct {
+			Attr1 string `map:"f1"`
+			Attr2 string `map:"f2"`
+			Attr3 string `map:"f3"`
+		}
+		err := tagmapper.Decode(decoder, &output)
+		tt.AssertNoErr(t, err)
+		tt.AssertEqual(t, output.Attr1, "v1")
+		tt.AssertEqual(t, output.Attr2, "v2")
+		tt.AssertEqual(t, output.Attr3, "v3")
+	})
+
+	t.Run("should ignore private fields", func(t *testing.T) {
+		decoder := FuncTagDecoder(func(field tagmapper.Field) (interface{}, error) {
+			return 64, nil
+		})
+
+		var output struct {
+			attr1 int `env:"attr1"`
+		}
+		err := tagmapper.Decode(decoder, &output)
+		tt.AssertNoErr(t, err)
+		tt.AssertEqual(t, output.attr1, 0)
+	})
+
+	t.Run("should convert types correctly", func(t *testing.T) {
+		t.Run("should convert different types of integers", func(t *testing.T) {
+			decoder := FuncTagDecoder(func(field tagmapper.Field) (interface{}, error) {
+				return uint64(10), nil
+			})
+
+			var output struct {
+				Attr1 int `env:"attr1"`
+			}
+			err := tagmapper.Decode(decoder, &output)
+			tt.AssertNoErr(t, err)
+			tt.AssertEqual(t, output.Attr1, 10)
+		})
+
+		t.Run("should convert from ptr to non ptr", func(t *testing.T) {
+			decoder := FuncTagDecoder(func(field tagmapper.Field) (interface{}, error) {
+				i := 64
+				return &i, nil
+			})
+
+			var output struct {
+				Attr1 int `env:"attr1"`
+			}
+			err := tagmapper.Decode(decoder, &output)
+			tt.AssertNoErr(t, err)
+			tt.AssertEqual(t, output.Attr1, 64)
+		})
+
+		t.Run("should convert from ptr to non ptr", func(t *testing.T) {
+			decoder := FuncTagDecoder(func(field tagmapper.Field) (interface{}, error) {
+				return 64, nil
+			})
+
+			var output struct {
+				Attr1 *int `env:"attr1"`
+			}
+			err := tagmapper.Decode(decoder, &output)
+			tt.AssertNoErr(t, err)
+			tt.AssertNotEqual(t, output.Attr1, nil)
+			tt.AssertEqual(t, *output.Attr1, 64)
+		})
+
+	})
+
 	t.Run("should report errors correctly", func(t *testing.T) {
 		tests := []struct {
 			desc               string

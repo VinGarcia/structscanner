@@ -1,6 +1,8 @@
 package tags
 
-import "strconv"
+import (
+	"strconv"
+)
 
 func ParseTags(tag string) map[string]string {
 	tagsMap := map[string]string{}
