@@ -187,6 +187,48 @@ func TestUnmarshal(t *testing.T) {
 				}{},
 				expectErrToContain: []string{"string", "int"},
 			},
+			{
+				desc:  "should report error if tag has no name",
+				value: "example-value",
+				targetStruct: &struct {
+					Attr1 string `valid:"attr1" :"missing_name"`
+				}{},
+				expectErrToContain: []string{"malformed tag", `valid:"attr1" :"missing_name"`},
+			},
+			{
+				desc:  "should report error if tag has no value",
+				value: "example-value",
+				targetStruct: &struct {
+					Attr1 string `valid:"attr1" missing_value:`
+				}{},
+				expectErrToContain: []string{"malformed tag", `valid:"attr1" missing_value:`},
+			},
+			{
+				desc:  "should report error if tag has invalid character",
+				value: "example-value",
+				targetStruct: &struct {
+					Attr1 string `line_break
+"attr1"`
+				}{},
+				// (10 is the ascii number for line breaks)
+				expectErrToContain: []string{"malformed tag", "10"},
+			},
+			{
+				desc:  "should report error if tag value is missing quotes",
+				value: "example-value",
+				targetStruct: &struct {
+					Attr1 string `line_break:attr1"`
+				}{},
+				expectErrToContain: []string{"malformed tag", "missing quotes", `line_break:attr1"`},
+			},
+			{
+				desc:  "should report error if tag value is missing quotes",
+				value: "example-value",
+				targetStruct: &struct {
+					Attr1 string `line_break:"attr1`
+				}{},
+				expectErrToContain: []string{"malformed tag", "missing end quote", `line_break:"attr1`},
+			},
 		}
 		for _, test := range tests {
 			t.Run(test.desc, func(t *testing.T) {

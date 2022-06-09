@@ -90,9 +90,14 @@ func getStructInfo(t reflect.Type) ([]Field, error) {
 			continue
 		}
 
+		parsedTags, err := tags.ParseTags(string(field.Tag))
+		if err != nil {
+			return nil, err
+		}
+
 		info = append(info, Field{
 			idx:  i,
-			Tags: tags.ParseTags(string(field.Tag)),
+			Tags: parsedTags,
 			Name: field.Name,
 			Type: field.Type,
 			Kind: field.Type.Kind(),

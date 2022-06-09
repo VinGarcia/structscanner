@@ -1,10 +1,13 @@
 package tags
 
 import (
+	"fmt"
 	"strconv"
 )
 
-func ParseTags(tag string) map[string]string {
+func ParseTags(tag string) (map[string]string, error) {
+	originalTag := tag
+
 	tagsMap := map[string]string{}
 
 	for tag != "" {
@@ -26,8 +29,17 @@ func ParseTags(tag string) map[string]string {
 		for i < len(tag) && tag[i] > ' ' && tag[i] != ':' && tag[i] != '"' && tag[i] != 0x7f {
 			i++
 		}
-		if i == 0 || i+1 >= len(tag) || tag[i] != ':' || tag[i+1] != '"' {
-			break
+		if i == 0 {
+			return nil, fmt.Errorf("malformed tag: missing tag name on tag string: '%s'", originalTag)
+		}
+		if i+1 >= len(tag) {
+			return nil, fmt.Errorf("malformed tag: expected tag value but got empty string on tag string: '%s'", originalTag)
+		}
+		if tag[i] != ':' {
+			return nil, fmt.Errorf("malformed tag: invalid character detected on tag string: '%d'", tag[i])
+		}
+		if tag[i+1] != '"' {
+			return nil, fmt.Errorf("malformed tag: missing quotes right after tag name in tag string: '%s'", originalTag)
 		}
 		name := string(tag[:i])
 		tag = tag[i+1:]
@@ -41,7 +53,7 @@ func ParseTags(tag string) map[string]string {
 			i++
 		}
 		if i >= len(tag) {
-			break
+			return nil, fmt.Errorf("malformed tag: missing end quote on a tag value in tag string: '%s'", originalTag)
 		}
 		qvalue := string(tag[:i+1])
 		tag = tag[i+1:]
@@ -54,5 +66,5 @@ func ParseTags(tag string) map[string]string {
 		tagsMap[name] = value
 	}
 
-	return tagsMap
+	return tagsMap, nil
 }
