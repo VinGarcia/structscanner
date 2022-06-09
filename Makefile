@@ -6,7 +6,6 @@ test: setup
 
 lint: setup
 	$(GOBIN)/staticcheck ./...
-	go vet ./...
 
 setup: $(GOBIN)/richgo $(GOBIN)/staticcheck
 $(GOBIN)/staticcheck:

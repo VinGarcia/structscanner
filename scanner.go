@@ -90,7 +90,7 @@ func getStructInfo(t reflect.Type) ([]Field, error) {
 			continue
 		}
 
-		parsedTags, err := tags.ParseTags(string(field.Tag))
+		parsedTags, err := tags.ParseTags(field.Tag)
 		if err != nil {
 			return nil, err
 		}
