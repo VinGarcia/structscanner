@@ -5,6 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/vingarcia/tagmapper"
+	tt "github.com/vingarcia/tagmapper/helpers/testtools"
 )
 
 type FuncTagDecoder func(info tagmapper.Field) (interface{}, error)
@@ -46,5 +47,33 @@ func TestUnmarshal(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, output.Attr1, "fake-value-for-string")
 		assert.Equal(t, output.Attr2, "placeholder")
+	})
+
+	t.Run("should report errors correctly", func(t *testing.T) {
+		tests := []struct {
+			desc               string
+			value              interface{}
+			targetStruct       interface{}
+			expectErrToContain []string
+		}{
+			{
+				desc:  "should report error if the type doesnt match",
+				value: "example-value",
+				targetStruct: &struct {
+					Attr1 int `env:"attr1"`
+				}{},
+				expectErrToContain: []string{"string", "int"},
+			},
+		}
+		for _, test := range tests {
+			t.Run(test.desc, func(t *testing.T) {
+				decoder := FuncTagDecoder(func(field tagmapper.Field) (interface{}, error) {
+					return test.value, nil
+				})
+
+				err := tagmapper.Decode(decoder, test.targetStruct)
+				tt.AssertErrContains(t, err, test.expectErrToContain...)
+			})
+		}
 	})
 }

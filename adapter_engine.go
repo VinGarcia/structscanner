@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/vingarcia/tagmapper/helpers/types"
 	"github.com/vingarcia/tagmapper/tags"
 )
 
@@ -54,7 +55,12 @@ func Decode(decoder TagDecoder, outputStruct interface{}) error {
 			continue
 		}
 
-		v.Elem().Field(i).Set(reflect.ValueOf(rawValue))
+		convertedValue, err := types.NewConverter(rawValue).Convert(info[i].Type)
+		if err != nil {
+			return err
+		}
+
+		v.Elem().Field(i).Set(convertedValue)
 	}
 	return nil
 }
