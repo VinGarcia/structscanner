@@ -1,12 +1,12 @@
-package tagmapper
+package structscanner
 
 import (
 	"fmt"
 	"reflect"
 	"unicode"
 
-	"github.com/vingarcia/tagmapper/helpers/types"
-	"github.com/vingarcia/tagmapper/tags"
+	"github.com/vingarcia/structscanner/helpers/types"
+	"github.com/vingarcia/structscanner/tags"
 )
 
 // TagDecoder is the adapter that allows the Decode function to get values

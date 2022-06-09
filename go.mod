@@ -1,4 +1,4 @@
-module github.com/vingarcia/tagmapper
+module github.com/vingarcia/structscanner
 
 go 1.18
 
