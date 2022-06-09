@@ -126,6 +126,50 @@ func TestUnmarshal(t *testing.T) {
 			tt.AssertEqual(t, *output.Attr1, 64)
 		})
 
+		t.Run("should work with structs", func(t *testing.T) {
+			type Foo struct {
+				Name string
+			}
+
+			decoder := FuncTagDecoder(func(field tagmapper.Field) (interface{}, error) {
+				return Foo{
+					Name: "test",
+				}, nil
+			})
+
+			var output struct {
+				Attr1 Foo `env:"attr1"`
+			}
+			err := tagmapper.Decode(decoder, &output)
+			tt.AssertNoErr(t, err)
+			tt.AssertEqual(t, output.Attr1, Foo{
+				Name: "test",
+			})
+		})
+
+		t.Run("should work with embeded fields", func(t *testing.T) {
+			type Foo struct {
+				Name      string
+				IsEmbeded bool
+			}
+
+			decoder := FuncTagDecoder(func(field tagmapper.Field) (interface{}, error) {
+				return Foo{
+					Name:      field.Name,      // should be foo
+					IsEmbeded: field.IsEmbeded, // should be true
+				}, nil
+			})
+
+			var output struct {
+				Foo `env:"attr1"`
+			}
+			err := tagmapper.Decode(decoder, &output)
+			tt.AssertNoErr(t, err)
+			tt.AssertEqual(t, output.Foo, Foo{
+				Name:      "Foo",
+				IsEmbeded: true,
+			})
+		})
 	})
 
 	t.Run("should report errors correctly", func(t *testing.T) {
