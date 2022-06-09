@@ -20,5 +20,5 @@ var configs struct {
 	Path   string `env:"PATH"`
 	Home   string `env:"HOME"`
 }
-err := structscanner.Decode(decoder, &output)
+err := structscanner.Decode(decoder, &configs)
 ```
