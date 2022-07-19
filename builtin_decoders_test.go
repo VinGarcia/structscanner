@@ -31,16 +31,6 @@ func TestFuncTagDecoder(t *testing.T) {
 
 func TestMapTagDecoder(t *testing.T) {
 	t.Run("should work for valid structs", func(t *testing.T) {
-		decoder := structscanner.NewMapTagDecoder("map", map[string]interface{}{
-			"id":       42,
-			"username": "fakeUsername",
-			"address": map[string]interface{}{
-				"street":  "fakeStreet",
-				"city":    "fakeCity",
-				"country": "fakeCountry",
-			},
-		})
-
 		var user struct {
 			ID       int    `map:"id"`
 			Username string `map:"username"`
@@ -50,8 +40,17 @@ func TestMapTagDecoder(t *testing.T) {
 				Country string `map:"country"`
 			} `map:"address"`
 		}
-		err := structscanner.Decode(&user, decoder)
+		err := structscanner.Decode(&user, structscanner.NewMapTagDecoder("map", map[string]interface{}{
+			"id":       42,
+			"username": "fakeUsername",
+			"address": map[string]interface{}{
+				"street":  "fakeStreet",
+				"city":    "fakeCity",
+				"country": "fakeCountry",
+			},
+		}))
 		tt.AssertNoErr(t, err)
+
 		tt.AssertEqual(t, user.ID, 42)
 		tt.AssertEqual(t, user.Username, "fakeUsername")
 		tt.AssertEqual(t, user.Address.Street, "fakeStreet")
@@ -60,12 +59,6 @@ func TestMapTagDecoder(t *testing.T) {
 	})
 
 	t.Run("should return error if we try to save something that is not a map into a nested struct", func(t *testing.T) {
-		decoder := structscanner.NewMapTagDecoder("map", map[string]interface{}{
-			"id":       42,
-			"username": "fakeUsername",
-			"address":  "notAMap",
-		})
-
 		var user struct {
 			ID       int    `map:"id"`
 			Username string `map:"username"`
@@ -75,7 +68,12 @@ func TestMapTagDecoder(t *testing.T) {
 				Country string `map:"country"`
 			} `map:"address"`
 		}
-		err := structscanner.Decode(&user, decoder)
+		err := structscanner.Decode(&user, structscanner.NewMapTagDecoder("map", map[string]interface{}{
+			"id":       42,
+			"username": "fakeUsername",
+			"address":  "notAMap",
+		}))
+
 		tt.AssertErrContains(t, err, "string", "Address", "Street", "City", "Country")
 	})
 }
