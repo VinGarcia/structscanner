@@ -21,17 +21,17 @@ It will use the `env` tags to map which env var should be used
 as source for each of the attributes of the struct.
 
 ```golang
-	// This one is stateless and can be reused:
-	decoder := structscanner.FuncTagDecoder(func(field structscanner.Field) (interface{}, error) {
-		return os.Getenv(field.Tags["env"]), nil
-	})
+// This one is stateless and can be reused:
+decoder := structscanner.FuncTagDecoder(func(field structscanner.Field) (interface{}, error) {
+	return os.Getenv(field.Tags["env"]), nil
+})
 
-	var config struct {
-		GoPath string `env:"GOPATH"`
-		Path   string `env:"PATH"`
-		Home   string `env:"HOME"`
-	}
-	err := structscanner.Decode(&config, decoder)
+var config struct {
+	GoPath string `env:"GOPATH"`
+	Path   string `env:"PATH"`
+	Home   string `env:"HOME"`
+}
+err := structscanner.Decode(&config, decoder)
 ```
 
 The above example loads data from a global state into the struct.
@@ -39,26 +39,26 @@ The above example loads data from a global state into the struct.
 This second example will fill a struct with the values of an input map:
 
 ```golang
-		// This one has state and maps a single map to a struct,
-		// so you might need to declare a new decoder for each use:
-		var user struct {
-			ID       int    `map:"id"`
-			Username string `map:"username"`
-			Address  struct {
-				Street  string `map:"street"`
-				City    string `map:"city"`
-				Country string `map:"country"`
-			} `map:"address"`
-		}
-		err := structscanner.Decode(&user, structscanner.NewMapTagDecoder("map", map[string]interface{}{
-			"id":       42,
-			"username": "fakeUsername",
-			"address": map[string]interface{}{
-				"street":  "fakeStreet",
-				"city":    "fakeCity",
-				"country": "fakeCountry",
-			},
-		}))
+// This one has state and maps a single map to a struct,
+// so you might need to declare a new decoder for each use:
+var user struct {
+	ID       int    `map:"id"`
+	Username string `map:"username"`
+	Address  struct {
+		Street  string `map:"street"`
+		City    string `map:"city"`
+		Country string `map:"country"`
+	} `map:"address"`
+}
+err := structscanner.Decode(&user, structscanner.NewMapTagDecoder("map", map[string]interface{}{
+	"id":       42,
+	"username": "fakeUsername",
+	"address": map[string]interface{}{
+		"street":  "fakeStreet",
+		"city":    "fakeCity",
+		"country": "fakeCountry",
+	},
+}))
 ```
 
 The code for `FuncTagDecoder` and `MapTagDecoder` are very simple and are also good examples
