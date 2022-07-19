@@ -1,6 +1,9 @@
 package structscanner
 
-import "reflect"
+import (
+	"fmt"
+	"reflect"
+)
 
 // FuncTagDecoder is a simple wrapper for decoders that do not need
 // to keep any state.
@@ -35,7 +38,13 @@ func NewMapTagDecoder(tagName string, sourceMap map[string]interface{}) MapTagDe
 func (e MapTagDecoder) DecodeField(info Field) (interface{}, error) {
 	key := info.Tags[e.tagName]
 	if info.Kind == reflect.Struct {
-		nestedMap := e.sourceMap[key].(map[string]interface{})
+		nestedMap, ok := e.sourceMap[key].(map[string]interface{})
+		if !ok {
+			return nil, fmt.Errorf(
+				"can't map %T into nested struct %s of type %v",
+				e.sourceMap[key], info.Name, info.Type,
+			)
+		}
 
 		// By returning a decoder you tell the library to run
 		// it recursively on top of this attribute:
