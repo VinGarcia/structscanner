@@ -37,7 +37,7 @@ type Field struct {
 	IsEmbeded bool
 }
 
-func Decode(decoder TagDecoder, outputStruct interface{}) error {
+func Decode(outputStruct interface{}, decoder TagDecoder) error {
 	v := reflect.ValueOf(outputStruct)
 	t := v.Type()
 	if t.Kind() != reflect.Ptr {
@@ -62,7 +62,7 @@ func Decode(decoder TagDecoder, outputStruct interface{}) error {
 
 		decoder, ok := rawValue.(TagDecoder)
 		if ok {
-			err := Decode(decoder, v.Elem().Field(field.idx).Addr().Interface())
+			err := Decode(v.Elem().Field(field.idx).Addr().Interface(), decoder)
 			if err != nil {
 				return err
 			}

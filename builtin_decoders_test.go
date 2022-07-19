@@ -22,7 +22,7 @@ func TestFuncTagDecoder(t *testing.T) {
 		Path   string `env:"PATH"`
 		Home   string `env:"HOME"`
 	}
-	err := structscanner.Decode(decoder, &config)
+	err := structscanner.Decode(&config, decoder)
 	tt.AssertNoErr(t, err)
 	tt.AssertEqual(t, config.GoPath, "fakeGOPATH")
 	tt.AssertEqual(t, config.Path, "fakePATH")
@@ -50,7 +50,7 @@ func TestMapTagDecoder(t *testing.T) {
 				Country string `map:"country"`
 			} `map:"address"`
 		}
-		err := structscanner.Decode(decoder, &user)
+		err := structscanner.Decode(&user, decoder)
 		tt.AssertNoErr(t, err)
 		tt.AssertEqual(t, user.ID, 42)
 		tt.AssertEqual(t, user.Username, "fakeUsername")
@@ -75,7 +75,7 @@ func TestMapTagDecoder(t *testing.T) {
 				Country string `map:"country"`
 			} `map:"address"`
 		}
-		err := structscanner.Decode(decoder, &user)
+		err := structscanner.Decode(&user, decoder)
 		tt.AssertErrContains(t, err, "string", "Address", "Street", "City", "Country")
 	})
 }

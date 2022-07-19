@@ -30,7 +30,7 @@ as source for each of the attributes of the struct.
 		Path   string `env:"PATH"`
 		Home   string `env:"HOME"`
 	}
-	err := structscanner.Decode(decoder, &config)
+	err := structscanner.Decode(&config, decoder)
 ```
 
 The above example loads data from a global state into the struct.
@@ -57,7 +57,7 @@ This second example will fill a struct with the values of an input map:
 			Country string `map:"country"`
 		} `map:"address"`
 	}
-	err := structscanner.Decode(decoder, &user)
+	err := structscanner.Decode(&user, decoder)
 ```
 
 The code for `FuncTagDecoder` and `MapTagDecoder` are very simple and are also good examples

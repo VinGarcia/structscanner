@@ -23,7 +23,7 @@ func TestDecode(t *testing.T) {
 		var output struct {
 			Attr1 string `env:"attr1"`
 		}
-		err := structscanner.Decode(decoder, &output)
+		err := structscanner.Decode(&output, decoder)
 		tt.AssertNoErr(t, err)
 		tt.AssertEqual(t, output.Attr1, "fake-value-for-string")
 	})
@@ -43,7 +43,7 @@ func TestDecode(t *testing.T) {
 			Attr2 string `someothertag:"attr2"`
 		}
 		output.Attr2 = "placeholder"
-		err := structscanner.Decode(decoder, &output)
+		err := structscanner.Decode(&output, decoder)
 		tt.AssertNoErr(t, err)
 		tt.AssertEqual(t, output.Attr1, "fake-value-for-string")
 		tt.AssertEqual(t, output.Attr2, "placeholder")
@@ -65,7 +65,7 @@ func TestDecode(t *testing.T) {
 			Attr2 string `map:"f2"`
 			Attr3 string `map:"f3"`
 		}
-		err := structscanner.Decode(decoder, &output)
+		err := structscanner.Decode(&output, decoder)
 		tt.AssertNoErr(t, err)
 		tt.AssertEqual(t, output.Attr1, "v1")
 		tt.AssertEqual(t, output.Attr2, "v2")
@@ -89,7 +89,7 @@ func TestDecode(t *testing.T) {
 				Attr2 int `env:"attr1"`
 			}
 		}
-		err := structscanner.Decode(decoder, &output)
+		err := structscanner.Decode(&output, decoder)
 		tt.AssertNoErr(t, err)
 		tt.AssertEqual(t, output.Attr1, 64)
 		tt.AssertEqual(t, output.OtherStruct.Attr2, 42)
@@ -103,7 +103,7 @@ func TestDecode(t *testing.T) {
 		var output struct {
 			Attr1 string `env:"attr1"`
 		}
-		err := structscanner.Decode(decoder, &output)
+		err := structscanner.Decode(&output, decoder)
 		tt.AssertNoErr(t, err)
 		tt.AssertEqual(t, output.Attr1, "fake-value-for-string")
 	})
@@ -117,7 +117,7 @@ func TestDecode(t *testing.T) {
 			var output struct {
 				Attr1 int `env:"attr1"`
 			}
-			err := structscanner.Decode(decoder, &output)
+			err := structscanner.Decode(&output, decoder)
 			tt.AssertNoErr(t, err)
 			tt.AssertEqual(t, output.Attr1, 10)
 		})
@@ -131,7 +131,7 @@ func TestDecode(t *testing.T) {
 			var output struct {
 				Attr1 int `env:"attr1"`
 			}
-			err := structscanner.Decode(decoder, &output)
+			err := structscanner.Decode(&output, decoder)
 			tt.AssertNoErr(t, err)
 			tt.AssertEqual(t, output.Attr1, 64)
 		})
@@ -144,7 +144,7 @@ func TestDecode(t *testing.T) {
 			var output struct {
 				Attr1 *int `env:"attr1"`
 			}
-			err := structscanner.Decode(decoder, &output)
+			err := structscanner.Decode(&output, decoder)
 			tt.AssertNoErr(t, err)
 			tt.AssertNotEqual(t, output.Attr1, nil)
 			tt.AssertEqual(t, *output.Attr1, 64)
@@ -164,7 +164,7 @@ func TestDecode(t *testing.T) {
 			var output struct {
 				Attr1 Foo `env:"attr1"`
 			}
-			err := structscanner.Decode(decoder, &output)
+			err := structscanner.Decode(&output, decoder)
 			tt.AssertNoErr(t, err)
 			tt.AssertEqual(t, output.Attr1, Foo{
 				Name: "test",
@@ -187,7 +187,7 @@ func TestDecode(t *testing.T) {
 			var output struct {
 				Foo `env:"attr1"`
 			}
-			err := structscanner.Decode(decoder, &output)
+			err := structscanner.Decode(&output, decoder)
 			tt.AssertNoErr(t, err)
 			tt.AssertEqual(t, output.Foo, Foo{
 				Name:      "Foo",
@@ -260,7 +260,7 @@ func TestDecode(t *testing.T) {
 					return test.value, nil
 				})
 
-				err := structscanner.Decode(decoder, test.targetStruct)
+				err := structscanner.Decode(test.targetStruct, decoder)
 				tt.AssertErrContains(t, err, test.expectErrToContain...)
 			})
 		}
