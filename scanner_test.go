@@ -1,6 +1,7 @@
 package structscanner_test
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/vingarcia/structscanner"
@@ -13,7 +14,7 @@ func (e FuncTagDecoder) DecodeField(info structscanner.Field) (interface{}, erro
 	return e(info)
 }
 
-func TestUnmarshal(t *testing.T) {
+func TestDecode(t *testing.T) {
 	t.Run("should parse a single tag with a hardcoded value", func(t *testing.T) {
 		decoder := FuncTagDecoder(func(field structscanner.Field) (interface{}, error) {
 			return "fake-value-for-string", nil
@@ -73,15 +74,38 @@ func TestUnmarshal(t *testing.T) {
 
 	t.Run("should ignore private fields", func(t *testing.T) {
 		decoder := FuncTagDecoder(func(field structscanner.Field) (interface{}, error) {
+			if field.Kind == reflect.Struct {
+				return FuncTagDecoder(func(field structscanner.Field) (interface{}, error) {
+					return 42, nil
+				}), nil
+			}
+
 			return 64, nil
 		})
 
 		var output struct {
-			attr1 int `env:"attr1"`
+			Attr1       int `env:"attr1"`
+			OtherStruct struct {
+				Attr2 int `env:"attr1"`
+			}
 		}
 		err := structscanner.Decode(decoder, &output)
 		tt.AssertNoErr(t, err)
-		tt.AssertEqual(t, output.attr1, 0)
+		tt.AssertEqual(t, output.Attr1, 64)
+		tt.AssertEqual(t, output.OtherStruct.Attr2, 42)
+	})
+
+	t.Run("should parse fields recursively if a decoder is returned", func(t *testing.T) {
+		decoder := FuncTagDecoder(func(field structscanner.Field) (interface{}, error) {
+			return "fake-value-for-string", nil
+		})
+
+		var output struct {
+			Attr1 string `env:"attr1"`
+		}
+		err := structscanner.Decode(decoder, &output)
+		tt.AssertNoErr(t, err)
+		tt.AssertEqual(t, output.Attr1, "fake-value-for-string")
 	})
 
 	t.Run("should convert types correctly", func(t *testing.T) {

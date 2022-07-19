@@ -60,6 +60,15 @@ func Decode(decoder TagDecoder, outputStruct interface{}) error {
 			continue
 		}
 
+		decoder, ok := rawValue.(TagDecoder)
+		if ok {
+			err := Decode(decoder, v.Elem().Field(field.idx).Addr().Interface())
+			if err != nil {
+				return err
+			}
+			continue
+		}
+
 		convertedValue, err := types.NewConverter(rawValue).Convert(field.Type)
 		if err != nil {
 			return err
