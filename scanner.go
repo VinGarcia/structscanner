@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"unicode"
 
-	"github.com/vingarcia/structscanner/helpers/types"
+	"github.com/vingarcia/structscanner/internal/types"
 	"github.com/vingarcia/structscanner/tags"
 )
 

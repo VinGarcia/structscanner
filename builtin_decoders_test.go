@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/vingarcia/structscanner"
-	tt "github.com/vingarcia/structscanner/helpers/testtools"
+	tt "github.com/vingarcia/structscanner/internal/testtools"
 )
 
 func TestFuncTagDecoder(t *testing.T) {
