@@ -3,15 +3,24 @@
 This project was created to make it easy to write code that
 scans data into structs in safe and efficient manner.
 
-The most important feature of this library is that the user
-never needs to deal directly with any of the edge concepts of
-the reflect package, for example there is no risk of panics happening
-and you only have access to two types from the reflect library:
+So to make it clear, this is not a library like:
 
-- reflect.Kind
-- reflect.Type
+- https://github.com/mitchellh/mapstructure
 
-Which you should use only for checking if the input type is what you expect or not.
+Nor something like:
+
+https://github.com/spf13/viper
+
+This is a library for allowing you to write your own Viper
+or Mapstructure libraries with ease and in a few lines of code,
+so that you get exactly what you need and in the way you need it.
+
+So the examples below are examples of things you can get by using
+this library. Both examples are also public so you can use them
+directly if you want.
+
+But the interesting part is that both were written
+in very few lines of code, so check that out too.
 
 ## Usage Examples:
 
@@ -107,7 +116,7 @@ func (e MapTagDecoder) DecodeField(info Field) (interface{}, error) {
 		}
 
 		// By returning a decoder you tell the library to run
-		// it recursively on top of this attribute:
+		// it recursively on this nested map:
 		return NewMapTagDecoder(e.tagName, nestedMap), nil
 	}
 

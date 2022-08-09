@@ -47,7 +47,7 @@ func (e MapTagDecoder) DecodeField(info Field) (interface{}, error) {
 		}
 
 		// By returning a decoder you tell the library to run
-		// it recursively on top of this attribute:
+		// it recursively on this nestedMap:
 		return NewMapTagDecoder(e.tagName, nestedMap), nil
 	}
 
