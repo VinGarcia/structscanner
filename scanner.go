@@ -44,7 +44,15 @@ func Decode(outputStruct interface{}, decoder TagDecoder) error {
 	if t.Kind() != reflect.Ptr {
 		return fmt.Errorf("expected struct pointer but got: %T", outputStruct)
 	}
+	if v.IsNil() {
+		return fmt.Errorf("expected non-nil pointer to struct, but got: %#v", outputStruct)
+	}
+
 	t = t.Elem()
+
+	if t.Kind() != reflect.Struct {
+		return fmt.Errorf("can only get struct info from structs, but got: %#v", outputStruct)
+	}
 
 	fields, err := getStructInfo(t)
 	if err != nil {
@@ -63,9 +71,21 @@ func Decode(outputStruct interface{}, decoder TagDecoder) error {
 
 		decoder, ok := rawValue.(TagDecoder)
 		if ok {
-			err := Decode(v.Elem().Field(field.idx).Addr().Interface(), decoder)
+			fieldType := v.Elem().Field(field.idx).Type()
+			fieldAddr := v.Elem().Field(field.idx).Addr()
+			if fieldType.Kind() == reflect.Ptr {
+				if fieldAddr.Elem().IsNil() {
+					// If this field is a nil pointer, do struct.Field = new(*T):
+					fieldAddr.Elem().Set(reflect.New(fieldType.Elem()))
+				}
+				// Now since it is a pointer, drop one level for the
+				// decode function to receive a *struct instead of a **struct:
+				fieldAddr = fieldAddr.Elem()
+			}
+
+			err := Decode(fieldAddr.Interface(), decoder)
 			if err != nil {
-				return err
+				return fmt.Errorf("error decoding nested field '%s': %s", t.Field(field.idx).Name, err)
 			}
 			continue
 		}

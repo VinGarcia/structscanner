@@ -68,38 +68,101 @@ func TestDecode(t *testing.T) {
 
 	t.Run("should ignore private fields", func(t *testing.T) {
 		decoder := ss.FuncTagDecoder(func(field ss.Field) (interface{}, error) {
-			if field.Kind == reflect.Struct {
-				return ss.FuncTagDecoder(func(field ss.Field) (interface{}, error) {
-					return 42, nil
-				}), nil
-			}
-
-			return 64, nil
-		})
-
-		var output struct {
-			Attr1       int `env:"attr1"`
-			OtherStruct struct {
-				Attr2 int `env:"attr1"`
-			}
-		}
-		err := ss.Decode(&output, decoder)
-		tt.AssertNoErr(t, err)
-		tt.AssertEqual(t, output.Attr1, 64)
-		tt.AssertEqual(t, output.OtherStruct.Attr2, 42)
-	})
-
-	t.Run("should parse fields recursively if a decoder is returned", func(t *testing.T) {
-		decoder := ss.FuncTagDecoder(func(field ss.Field) (interface{}, error) {
 			return "fake-value-for-string", nil
 		})
 
 		var output struct {
 			Attr1 string `env:"attr1"`
+			attr2 string `env:"attr2"`
 		}
 		err := ss.Decode(&output, decoder)
 		tt.AssertNoErr(t, err)
 		tt.AssertEqual(t, output.Attr1, "fake-value-for-string")
+		tt.AssertEqual(t, output.attr2, "")
+	})
+
+	t.Run("nested structs", func(t *testing.T) {
+		t.Run("should parse fields recursively if a decoder is returned", func(t *testing.T) {
+			decoder := ss.FuncTagDecoder(func(field ss.Field) (interface{}, error) {
+				if field.Kind == reflect.Struct {
+					return ss.FuncTagDecoder(func(field ss.Field) (interface{}, error) {
+						return 42, nil
+					}), nil
+				}
+
+				return 64, nil
+			})
+
+			var output struct {
+				Attr1       int `env:"attr1"`
+				OtherStruct struct {
+					Attr2 int `env:"attr1"`
+				}
+			}
+			err := ss.Decode(&output, decoder)
+			tt.AssertNoErr(t, err)
+			tt.AssertEqual(t, output.Attr1, 64)
+			tt.AssertEqual(t, output.OtherStruct.Attr2, 42)
+		})
+
+		t.Run("should parse fields recursively even for nil pointers to struct", func(t *testing.T) {
+			decoder := ss.FuncTagDecoder(func(field ss.Field) (interface{}, error) {
+				if field.Kind == reflect.Ptr && field.Type.Elem().Kind() == reflect.Struct {
+					return ss.FuncTagDecoder(func(field ss.Field) (interface{}, error) {
+						return 42, nil
+					}), nil
+				}
+
+				return 64, nil
+			})
+
+			var output struct {
+				Attr1       int `env:"attr1"`
+				OtherStruct *struct {
+					Attr2 int `env:"attr2"`
+				}
+			}
+			err := ss.Decode(&output, decoder)
+			tt.AssertNoErr(t, err)
+			tt.AssertEqual(t, output.Attr1, 64)
+			tt.AssertEqual(t, output.OtherStruct.Attr2, 42)
+		})
+
+		t.Run("should report error correctly for invalid nested values", func(t *testing.T) {
+			tests := []struct {
+				desc               string
+				targetStruct       interface{}
+				expectErrToContain []string
+			}{
+				{
+					desc: "not a struct",
+					targetStruct: &struct {
+						NotAStruct int `env:"attr1"`
+					}{},
+					expectErrToContain: []string{"NotAStruct", "can only get struct info from structs", "int"},
+				},
+				{
+					desc: "pointer to not a struct",
+					targetStruct: &struct {
+						NotAStruct *int `env:"attr1"`
+					}{},
+					expectErrToContain: []string{"NotAStruct", "can only get struct info from structs", "*int"},
+				},
+			}
+			for _, test := range tests {
+				t.Run(test.desc, func(t *testing.T) {
+					decoder := ss.FuncTagDecoder(func(field ss.Field) (interface{}, error) {
+						// Some tag decoder:
+						return ss.FuncTagDecoder(func(field ss.Field) (interface{}, error) {
+							return 42, nil
+						}), nil
+					})
+
+					err := ss.Decode(test.targetStruct, decoder)
+					tt.AssertErrContains(t, err, test.expectErrToContain...)
+				})
+			}
+		})
 	})
 
 	t.Run("should convert types correctly", func(t *testing.T) {
@@ -198,6 +261,28 @@ func TestDecode(t *testing.T) {
 			expectErrToContain []string
 		}{
 			{
+				desc:               "should report error input is a ptr to something else than a struct",
+				value:              "example-value",
+				targetStruct:       &[]int{},
+				expectErrToContain: []string{"can only get struct info from structs", "[]int"},
+			},
+			{
+				desc:  "should report error if input is not a pointer",
+				value: "example-value",
+				targetStruct: struct {
+					Attr1 string `some_tag:""`
+				}{},
+				expectErrToContain: []string{"expected struct pointer"},
+			},
+			{
+				desc:  "should report error if input a nil ptr to struct",
+				value: "example-value",
+				targetStruct: (*struct {
+					Attr1 string `some_tag:""`
+				})(nil),
+				expectErrToContain: []string{"expected non-nil pointer"},
+			},
+			{
 				desc:  "should report error if the type doesnt match",
 				value: "example-value",
 				targetStruct: &struct {
@@ -226,7 +311,7 @@ func TestDecode(t *testing.T) {
 				value: "example-value",
 				targetStruct: &struct {
 					Attr1 string `line_break
-"attr1"`
+												"attr1"`
 				}{},
 				// (10 is the ascii number for line breaks)
 				expectErrToContain: []string{"malformed tag", "10"},
