@@ -15,10 +15,6 @@ jobs:
           bash -c "$(go env GOPATH)/bin/staticcheck ./..."
       - name: Run Tests
         run: go test -coverprofile=coverage.txt -covermode=atomic ./...
-      - name: Run Coverage
-        run: bash <(curl -s https://codecov.io/bash)
-        env:
-          CODECOV_TOKEN: 36be8ba6-7ef1-4ec2-b607-67c1055a62ad
 
 
 
