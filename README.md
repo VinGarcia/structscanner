@@ -124,6 +124,14 @@ func (e MapTagDecoder) DecodeField(info Field) (interface{}, error) {
 }
 ```
 
+## License
+
+This project was put into public domain, which means you can copy, use and modify
+any part of it without mentioning its original source so feel free to do that
+if it would be more convenient that way.
+
+Enjoy.
+
 ## TODO
 
 - Add test checking if pointers to nested structs work as they should
