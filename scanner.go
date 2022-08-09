@@ -3,6 +3,7 @@ package structscanner
 import (
 	"fmt"
 	"reflect"
+	"sync"
 	"unicode"
 
 	"github.com/vingarcia/structscanner/internal/types"
@@ -79,11 +80,16 @@ func Decode(outputStruct interface{}, decoder TagDecoder) error {
 	return nil
 }
 
-var structInfoCache = map[reflect.Type][]Field{}
+// This cache is kept as a pkg variable
+// because the total number of types on a program
+// should be finite. So keeping a single cache here
+// works fine.
+var structInfoCache = &sync.Map{}
 
 func getStructInfo(t reflect.Type) ([]Field, error) {
-	info, found := structInfoCache[t]
-	if found {
+	data, _ := structInfoCache.Load(t)
+	info, ok := data.([]Field)
+	if ok {
 		return info, nil
 	}
 
@@ -116,6 +122,6 @@ func getStructInfo(t reflect.Type) ([]Field, error) {
 		})
 	}
 
-	structInfoCache[t] = info
+	structInfoCache.Store(t, info)
 	return info, nil
 }
