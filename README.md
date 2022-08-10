@@ -131,7 +131,3 @@ any part of it without mentioning its original source so feel free to do that
 if it would be more convenient that way.
 
 Enjoy.
-
-## TODO
-
-- Add test checking if pointers to nested structs work as they should
