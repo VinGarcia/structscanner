@@ -22,7 +22,7 @@ jobs:
       - name: Run Coverage
         run: bash <(curl -s https://codecov.io/bash)
         env:
-          CODECOV_TOKEN: 36be8ba6-7ef1-4ec2-b607-67c1055a62ad
+          CODECOV_TOKEN: 0fe31702-a468-46ad-a8aa-3198bb5e29f4
 
 
 
