@@ -27,6 +27,39 @@ directly if you want.
 But the interesting part is that both were written
 in very few lines of code, so check that out too.
 
+## Understanding the Project:
+
+![image showing that the TagDecoder interface is a wrapper that
+adapts a data source so that the Decode function can use it to fill
+the attributes of a struct](docs/understanding-the-project.png)
+
+So we have 3 pieces here:
+
+The data source can be anything in your context: A source map,
+env variables, a config file, and so on, you name it.
+
+By default the `structscanner` library does not know how to interact
+with the data source that you have chosen, so you have to wrap your
+data source by creating your own custom decoder that implements
+the `structscanner.TagDecoder` interface.
+
+This decoder is a basically a struct that knows your data source
+and will read from it when requested.
+
+It will probably be necessary to instantiate a new Decoder for each
+instance of a data source, which I know feels least than ideal, but
+it is the right way since it would feel more natural to just pass
+the data source as a third argument, but then `structscanner` would
+need to know your data source, which would break the abstraction.
+
+Having your decoder instantiated you can now call the `structscanner.Decode()`
+function passing the decoder instance and the target struct that you want
+to be filled with data, and the `Decode()` function will handle all the
+necessary reflection magic for you.
+
+It will also keep a cache with the most expensive steps so each decoding
+can be done efficiently.
+
 ## Usage Examples:
 
 The code below will fill the struct with data from env variables.
