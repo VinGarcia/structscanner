@@ -4,7 +4,7 @@ on: [push, pull_request]
 
 jobs:
   tests:
-    runs-on: ubuntu-latest
+    runs-on: golang:1.18
     steps:
       - uses: actions/checkout@v2
       - name: Check go version
