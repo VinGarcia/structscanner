@@ -4,9 +4,13 @@ on: [push, pull_request]
 
 jobs:
   tests:
-    runs-on: golang:1.18
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: "1.18.0"
       - name: Check go version
         run: go version
       - name: Run linters
