@@ -10,23 +10,27 @@ import (
 	"github.com/vingarcia/structscanner/tags"
 )
 
-// TagDecoder is the adapter that allows the Decode function to get values
-// from any data source.
+// TagDecoder is the interface that allows the Decode function to get values
+// from any data source and then use these values to fill a targetStruct.
 //
-// The TagDecoder will then receive a tagValue and a reflect.Kind and return
-// a value that is compatible with that type, e.g.:
+// The struct that implements this TagDecoder interface should
+// handle each call to `DecodeField()` by returning the value
+// that should be written to the Field described in the `field` argument.
 //
-// Suppose a decoder that reads from os.Getenv() and it receives:
-// tagValue = "NUM_RETRIES" and fieldKind = reflect.Int, then it should
-// return strconv.Atoi(os.Getenv("NUM_RETRIES"))
+// The Decode() function will then take care of checking and making any
+// necessary conversions between the returned value and actual struct field.
 //
-// The decoder will then proceed to check if the type matches the expected
-// and then assign it to the struct field that contained the previous specified
-// tagValue.
+// The FuncTagDecoder and MapTagDecoder are examples of how this interface
+// can be implemented, please read the source code of these two types
+// to better understand this interface.
 type TagDecoder interface {
-	DecodeField(info Field) (interface{}, error)
+	DecodeField(field Field) (interface{}, error)
 }
 
+// Field is the input expected by the `DecodeField` method
+// of the TagDecoder interface and contains all the information
+// about the field that is currently being targeted by the
+// Decode() function.
 type Field struct {
 	idx int
 
@@ -38,20 +42,22 @@ type Field struct {
 	IsEmbeded bool
 }
 
-func Decode(outputStruct interface{}, decoder TagDecoder) error {
-	v := reflect.ValueOf(outputStruct)
+// Decode reads from the input decoder in order to fill the
+// attributes of an target struct.
+func Decode(targetStruct interface{}, decoder TagDecoder) error {
+	v := reflect.ValueOf(targetStruct)
 	t := v.Type()
 	if t.Kind() != reflect.Ptr {
-		return fmt.Errorf("expected struct pointer but got: %T", outputStruct)
+		return fmt.Errorf("expected struct pointer but got: %T", targetStruct)
 	}
 	if v.IsNil() {
-		return fmt.Errorf("expected non-nil pointer to struct, but got: %#v", outputStruct)
+		return fmt.Errorf("expected non-nil pointer to struct, but got: %#v", targetStruct)
 	}
 
 	t = t.Elem()
 
 	if t.Kind() != reflect.Struct {
-		return fmt.Errorf("can only get struct info from structs, but got: %#v", outputStruct)
+		return fmt.Errorf("can only get struct info from structs, but got: %#v", targetStruct)
 	}
 
 	fields, err := getStructInfo(t)
