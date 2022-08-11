@@ -1,3 +1,8 @@
+[![CI](https://github.com/VinGarcia/structscanner/actions/workflows/ci.yml/badge.svg)](https://github.com/VinGarcia/structscanner/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/VinGarcia/structscanner/branch/master/graph/badge.svg?token=5CNJ867C66)](https://codecov.io/gh/VinGarcia/structscanner)
+[![Go Reference](https://pkg.go.dev/badge/github.com/vingarcia/structscanner.svg)](https://pkg.go.dev/github.com/vingarcia/structscanner)
+![Go Report Card](https://goreportcard.com/badge/github.com/vingarcia/structscanner)
+
 # Intro
 
 This project was created to make it easy to write code that
