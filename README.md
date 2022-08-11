@@ -39,18 +39,21 @@ The data source can be anything in your context: A source map,
 env variables, a config file, and so on, you name it.
 
 By default the `structscanner` library does not know how to interact
-with the data source that you have chosen, so you have to wrap your
-data source by creating your own custom decoder that implements
-the `structscanner.TagDecoder` interface.
+with the data source that you have chosen, so you have to teach it.
 
-This decoder is a basically a struct that knows your data source
-and will read from it when requested.
+That's where the decoder comes in:
+This decoder should be a wrapper over your chosen data source,
+and it should implement the `structscanner.TagDecoder` interface,
+so that when requested it will read the data source on behalf
+of the `structcanner` library.
 
-It will probably be necessary to instantiate a new Decoder for each
-instance of a data source, which I know feels least than ideal, but
-it is the right way since it would feel more natural to just pass
-the data source as a third argument, but then `structscanner` would
-need to know your data source, which would break the abstraction.
+> Note: It will probably be necessary to instantiate a new Decoder for each
+> instance of a data source, which I know feels least than ideal but
+> it is the best way I found.
+>
+> You might want to write a function that does the instantiation of the wrapper,
+> and then calls the `Decode()` function, like in the examples below so it looks
+> better for the final user.
 
 Having your decoder instantiated you can now call the `structscanner.Decode()`
 function passing the decoder instance and the target struct that you want
