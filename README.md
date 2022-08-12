@@ -90,7 +90,7 @@ This second example will fill a struct with the values of an input map:
 
 ```golang
 // This one has state and maps a single map to a struct,
-// so you might need to declare a new decoder for each use:
+// so you might need to instantiate a new decoder for each use:
 var user struct {
 	ID       int    `map:"id"`
 	Username string `map:"username"`
