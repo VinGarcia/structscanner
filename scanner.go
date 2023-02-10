@@ -75,6 +75,35 @@ func Decode(targetStruct interface{}, decoder TagDecoder) error {
 			continue
 		}
 
+		if field.Kind == reflect.Slice {
+			sliceValue := reflect.ValueOf(rawValue)
+			sliceType := sliceValue.Type()
+			if sliceType.Kind() == reflect.Ptr {
+				sliceType = sliceType.Elem()
+				sliceValue = sliceValue.Elem()
+			}
+
+			if sliceType.Kind() != reflect.Slice {
+				return fmt.Errorf("expected slice for field %#v but got %v of type %v", t.Field(field.idx), sliceValue, sliceType)
+			}
+
+			elemType := field.Type.Elem()
+
+			sliceLen := sliceValue.Len()
+			targetSlice := reflect.MakeSlice(field.Type, sliceLen, sliceLen)
+			for i := 0; i < sliceLen; i++ {
+				convertedValue, err := types.NewConverter(sliceValue.Index(i).Interface()).Convert(elemType)
+				if err != nil {
+					return fmt.Errorf("error converting %v[%d]: %w", t.Field(field.idx).Name, i, err)
+				}
+
+				targetSlice.Index(i).Set(convertedValue)
+			}
+
+			v.Elem().Field(field.idx).Set(targetSlice)
+			continue
+		}
+
 		decoder, ok := rawValue.(TagDecoder)
 		if ok {
 			fieldType := v.Elem().Field(field.idx).Type()

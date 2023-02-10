@@ -165,6 +165,96 @@ func TestDecode(t *testing.T) {
 		})
 	})
 
+	t.Run("nested slices", func(t *testing.T) {
+		t.Run("should convert each item of a slice", func(t *testing.T) {
+			decoder := ss.FuncTagDecoder(func(field ss.Field) (interface{}, error) {
+				return []interface{}{1, 2, 3}, nil
+			})
+
+			var output struct {
+				Slice []int `map:"slice"`
+			}
+			err := ss.Decode(&output, decoder)
+			tt.AssertNoErr(t, err)
+			tt.AssertEqual(t, output.Slice, []int{1, 2, 3})
+		})
+
+		t.Run("should convert each item of a slice even with different types", func(t *testing.T) {
+			decoder := ss.FuncTagDecoder(func(field ss.Field) (interface{}, error) {
+				return []interface{}{1, 2, 3}, nil
+			})
+
+			var output struct {
+				Slice []float64 `map:"slice"`
+			}
+			err := ss.Decode(&output, decoder)
+			tt.AssertNoErr(t, err)
+			tt.AssertEqual(t, output.Slice, []float64{1.0, 2.0, 3.0})
+		})
+
+		t.Run("should work with slices of pointers", func(t *testing.T) {
+			decoder := ss.FuncTagDecoder(func(field ss.Field) (interface{}, error) {
+				return []*int{
+					intPtr(1),
+					intPtr(2),
+					intPtr(3),
+				}, nil
+			})
+
+			var output struct {
+				Slice []int `map:"slice"`
+			}
+			err := ss.Decode(&output, decoder)
+			tt.AssertNoErr(t, err)
+			tt.AssertEqual(t, output.Slice, []int{1, 2, 3})
+		})
+
+		t.Run("should work with slices of pointers or different types", func(t *testing.T) {
+			decoder := ss.FuncTagDecoder(func(field ss.Field) (interface{}, error) {
+				return []*int{
+					intPtr(1),
+					intPtr(2),
+					intPtr(3),
+				}, nil
+			})
+
+			var output struct {
+				Slice []float64 `map:"slice"`
+			}
+			err := ss.Decode(&output, decoder)
+			tt.AssertNoErr(t, err)
+			tt.AssertEqual(t, output.Slice, []float64{1.0, 2.0, 3.0})
+		})
+
+		t.Run("should work with pointers to slices", func(t *testing.T) {
+			t.Run("source pointer target non-pointer", func(t *testing.T) {
+				decoder := ss.FuncTagDecoder(func(field ss.Field) (interface{}, error) {
+					return &[]int{1, 2, 3}, nil
+				})
+
+				var output struct {
+					Slice []int `map:"slice"`
+				}
+				err := ss.Decode(&output, decoder)
+				tt.AssertNoErr(t, err)
+				tt.AssertEqual(t, output.Slice, []int{1, 2, 3})
+			})
+
+			t.Run("source non-pointer target pointer", func(t *testing.T) {
+				decoder := ss.FuncTagDecoder(func(field ss.Field) (interface{}, error) {
+					return []int{1, 2, 3}, nil
+				})
+
+				var output struct {
+					Slice *[]int `map:"slice"`
+				}
+				err := ss.Decode(&output, decoder)
+				tt.AssertNoErr(t, err)
+				tt.AssertEqual(t, output.Slice, &[]int{1, 2, 3})
+			})
+		})
+	})
+
 	t.Run("should convert types correctly", func(t *testing.T) {
 		t.Run("should convert different types of integers", func(t *testing.T) {
 			decoder := ss.FuncTagDecoder(func(field ss.Field) (interface{}, error) {
@@ -291,6 +381,22 @@ func TestDecode(t *testing.T) {
 				expectErrToContain: []string{"string", "int"},
 			},
 			{
+				desc:  "should report error if parsing a non-slice into a slice field",
+				value: "example-value",
+				targetStruct: &struct {
+					Attr1 []string `some_tag:"attr1"`
+				}{},
+				expectErrToContain: []string{"expected slice", "Attr1", "string", "example-value"},
+			},
+			{
+				desc:  "should report error if the conversion fails for one of the slice elements",
+				value: []any{42, "not a number", 43},
+				targetStruct: &struct {
+					Attr1 []int `some_tag:"attr1"`
+				}{},
+				expectErrToContain: []string{"error converting", "Attr1", "int", "string"},
+			},
+			{
 				desc:  "should report error if tag has no name",
 				value: "example-value",
 				targetStruct: &struct {
@@ -344,4 +450,8 @@ func TestDecode(t *testing.T) {
 			})
 		}
 	})
+}
+
+func intPtr(i int) *int {
+	return &i
 }
