@@ -6,7 +6,7 @@
 # Intro
 
 This project was created to make it easy to write code that
-scans data into structs in safe and efficient manner.
+scans data into structs in a safe and efficient manner.
 
 So to make it clear, this is not a library like:
 
@@ -49,9 +49,9 @@ of the `structcanner` library.
 
 > Note: It will probably be necessary to instantiate a new Decoder for each
 > instance of a data source, which I know feels least than ideal but
-> it is the best way I found.
+> it was necessary for fully decoupling from the data source.
 >
-> You might want to write a function that does the instantiation of the wrapper,
+> It is also easy enough to write a function that does the instantiation of the wrapper,
 > and then calls the `Decode()` function, like in the examples below so it looks
 > better for the final user.
 
@@ -60,8 +60,8 @@ function passing the decoder instance and the target struct that you want
 to be filled with data, and the `Decode()` function will handle all the
 necessary reflection magic for you.
 
-It will also keep a cache with the most expensive steps so each decoding
-can be done efficiently.
+It will also keep a cache with the most expensive steps (the ones that use reflection the most)
+so that decoding can be done efficiently.
 
 ## Usage Examples:
 
@@ -90,7 +90,7 @@ This second example will fill a struct with the values of an input map:
 
 ```golang
 // This one has state and maps a single map to a struct,
-// so you might need to instantiate a new decoder for each use:
+// so you might need to instantiate a new decoder for each input map:
 var user struct {
 	ID       int    `map:"id"`
 	Username string `map:"username"`
@@ -99,6 +99,7 @@ var user struct {
 		City    string `map:"city"`
 		Country string `map:"country"`
 	} `map:"address"`
+    SomeSlice []int `map:"some_slice"`
 }
 err := structscanner.Decode(&user, structscanner.NewMapTagDecoder("map", map[string]interface{}{
 	"id":       42,
@@ -108,6 +109,10 @@ err := structscanner.Decode(&user, structscanner.NewMapTagDecoder("map", map[str
 		"city":    "fakeCity",
 		"country": "fakeCountry",
 	},
+    // Note that even though the type of the slice below
+    // differs from the struct slice it will convert all
+    // values correctly:
+    "some_slice": []float64{1.0, 2.0, 3.0},
 }))
 ```
 

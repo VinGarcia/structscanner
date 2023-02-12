@@ -39,6 +39,7 @@ func TestMapTagDecoder(t *testing.T) {
 				City    string `map:"city"`
 				Country string `map:"country"`
 			} `map:"address"`
+			SomeSlice []int `map:"some_slice"`
 		}
 		err := structscanner.Decode(&user, structscanner.NewMapTagDecoder("map", map[string]interface{}{
 			"id":       42,
@@ -48,6 +49,10 @@ func TestMapTagDecoder(t *testing.T) {
 				"city":    "fakeCity",
 				"country": "fakeCountry",
 			},
+			// Note that even though the type of the slice below
+			// differs from the struct slice it will convert all
+			// values correctly:
+			"some_slice": []float64{1.0, 2.0, 3.0},
 		}))
 		tt.AssertNoErr(t, err)
 
@@ -56,6 +61,7 @@ func TestMapTagDecoder(t *testing.T) {
 		tt.AssertEqual(t, user.Address.Street, "fakeStreet")
 		tt.AssertEqual(t, user.Address.City, "fakeCity")
 		tt.AssertEqual(t, user.Address.Country, "fakeCountry")
+		tt.AssertEqual(t, user.SomeSlice, []int{1, 2, 3})
 	})
 
 	t.Run("should return error if we try to save something that is not a map into a nested struct", func(t *testing.T) {
