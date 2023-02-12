@@ -45,22 +45,7 @@ type Field struct {
 // Decode reads from the input decoder in order to fill the
 // attributes of an target struct.
 func Decode(targetStruct interface{}, decoder TagDecoder) error {
-	v := reflect.ValueOf(targetStruct)
-	t := v.Type()
-	if t.Kind() != reflect.Ptr {
-		return fmt.Errorf("expected struct pointer but got: %T", targetStruct)
-	}
-	if v.IsNil() {
-		return fmt.Errorf("expected non-nil pointer to struct, but got: %#v", targetStruct)
-	}
-
-	t = t.Elem()
-
-	if t.Kind() != reflect.Struct {
-		return fmt.Errorf("can only get struct info from structs, but got: %#v", targetStruct)
-	}
-
-	fields, err := getStructInfo(t)
+	t, v, fields, err := getStructInfo(targetStruct)
 	if err != nil {
 		return err
 	}
@@ -141,15 +126,26 @@ func Decode(targetStruct interface{}, decoder TagDecoder) error {
 // works fine.
 var structInfoCache = &sync.Map{}
 
-func getStructInfo(t reflect.Type) ([]Field, error) {
+func getStructInfo(targetStruct interface{}) (reflect.Type, reflect.Value, []Field, error) {
+	v := reflect.ValueOf(targetStruct)
+	t := v.Type()
+	if t.Kind() != reflect.Ptr {
+		return nil, reflect.Value{}, nil, fmt.Errorf("expected struct pointer but got: %T", targetStruct)
+	}
+	if v.IsNil() {
+		return nil, reflect.Value{}, nil, fmt.Errorf("expected non-nil pointer to struct, but got: %#v", targetStruct)
+	}
+
+	t = t.Elem()
+
+	if t.Kind() != reflect.Struct {
+		return nil, reflect.Value{}, nil, fmt.Errorf("can only get struct info from structs, but got: %#v", targetStruct)
+	}
+
 	data, _ := structInfoCache.Load(t)
 	info, ok := data.([]Field)
 	if ok {
-		return info, nil
-	}
-
-	if t.Kind() != reflect.Struct {
-		return nil, fmt.Errorf("can only get struct info from structs, but got: %v", t)
+		return t, v, info, nil
 	}
 
 	info = []Field{}
@@ -162,7 +158,7 @@ func getStructInfo(t reflect.Type) ([]Field, error) {
 
 		parsedTags, err := tags.ParseTags(field.Tag)
 		if err != nil {
-			return nil, err
+			return nil, reflect.Value{}, nil, err
 		}
 
 		info = append(info, Field{
@@ -178,5 +174,5 @@ func getStructInfo(t reflect.Type) ([]Field, error) {
 	}
 
 	structInfoCache.Store(t, info)
-	return info, nil
+	return t, v, info, nil
 }
