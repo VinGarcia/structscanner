@@ -64,13 +64,10 @@ func (p Converter) Convert(destType reflect.Type) (reflect.Value, error) {
 		return reflect.New(destType).Elem(), nil
 	}
 
-	if !p.ElemType.ConvertibleTo(destElemType) {
-		return reflect.Value{}, fmt.Errorf(
-			"cannot convert from type %v to type %v", p.BaseType, destType,
-		)
+	destValue, err := p.convert(destElemType, destType)
+	if err != nil {
+		return reflect.Value{}, err
 	}
-
-	destValue := p.ElemValue.Convert(destElemType)
 
 	// Get the address of destValue if necessary:
 	if destType.Kind() == reflect.Ptr {
@@ -84,4 +81,59 @@ func (p Converter) Convert(destType reflect.Type) (reflect.Value, error) {
 	}
 
 	return destValue, nil
+}
+
+func (p Converter) convert(destElemType reflect.Type, destType reflect.Type) (reflect.Value, error) {
+	if p.ElemType.Kind() == reflect.Map &&
+		destElemType.Kind() == reflect.Map &&
+		p.ElemType != destElemType {
+
+		return p.convertMap(destElemType, destType)
+	}
+
+	if !p.ElemType.ConvertibleTo(destElemType) {
+		return reflect.Value{}, fmt.Errorf(
+			"cannot convert from type %v to type %v, received value was: %v",
+			p.BaseType, destType, p.ElemValue,
+		)
+	}
+
+	return p.ElemValue.Convert(destElemType), nil
+}
+
+func (p Converter) convertMap(destElemType reflect.Type, destType reflect.Type) (reflect.Value, error) {
+	destElemKeyType := destElemType.Key()
+	destElemValueType := destElemType.Elem()
+
+	targetMap := reflect.MakeMap(destElemType)
+	iter := p.ElemValue.MapRange()
+	for iter.Next() {
+		key := iter.Key()
+		value := iter.Value()
+		if key.Type().Kind() == reflect.Interface && !key.IsNil() {
+			key = key.Elem()
+		}
+
+		if value.Type().Kind() == reflect.Interface && !value.IsNil() {
+			value = value.Elem()
+		}
+
+		if !key.Type().ConvertibleTo(destElemKeyType) {
+			return reflect.Value{}, fmt.Errorf(
+				"cannot convert map key '%v' of type %v to target map key of type: %v",
+				key, key.Type(), destElemKeyType,
+			)
+		}
+
+		if !value.Type().ConvertibleTo(destElemValueType) {
+			return reflect.Value{}, fmt.Errorf(
+				"cannot convert map value: '%v' of type: %v, on key: '%v', to type: %v",
+				value, value.Type(), key, destElemValueType,
+			)
+		}
+
+		targetMap.SetMapIndex(key.Convert(destElemKeyType), value.Convert(destElemValueType))
+	}
+
+	return targetMap, nil
 }

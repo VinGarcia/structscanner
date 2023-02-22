@@ -58,10 +58,62 @@ func TestConverter(t *testing.T) {
 			expectedOutput: 0,
 		},
 		{
+			desc: "should convert maps of different but compatible types",
+			input: map[string]string{
+				"fakeKey": "fakeValue",
+			},
+			targetType: reflect.TypeOf(map[any]any{}),
+			expectedOutput: map[any]any{
+				"fakeKey": "fakeValue",
+			},
+		},
+		{
+			desc: "should convert maps with interface subtypes in a best-effort basis", // (Try to convert it, if not possible return an error)
+			input: map[any]any{
+				"fakeKey": "fakeValue",
+			},
+			targetType: reflect.TypeOf(map[string]string{}),
+			expectedOutput: map[string]string{
+				"fakeKey": "fakeValue",
+			},
+		},
+		{
 			desc:               "should report error if types are not compatible",
 			input:              10,
 			targetType:         reflect.TypeOf(struct{}{}),
 			expectErrToContain: []string{"cannot convert", "int", "10", "struct"},
+		},
+		{
+			desc: "should report error if map key is not compatible with target map key",
+			input: map[struct{}]any{
+				struct{}{}: "fakeValue",
+			},
+			targetType:         reflect.TypeOf(map[string]string{}),
+			expectErrToContain: []string{"key", "struct", "string"},
+		},
+		{
+			desc: "should report error if map value is not compatible with target map value",
+			input: map[string]struct{}{
+				"fakeKey": struct{}{},
+			},
+			targetType:         reflect.TypeOf(map[string]string{}),
+			expectErrToContain: []string{"value", "struct", "string"},
+		},
+		{
+			desc: "should not panic if a map key is nil",
+			input: map[any]string{
+				nil: "fakeValue",
+			},
+			targetType:         reflect.TypeOf(map[string]string{}),
+			expectErrToContain: []string{"cannot convert", "nil", "to", "string"},
+		},
+		{
+			desc: "should not panic if a map value is nil",
+			input: map[string]any{
+				"fakeKey": nil,
+			},
+			targetType:         reflect.TypeOf(map[string]string{}),
+			expectErrToContain: []string{"cannot convert", "nil", "to", "string"},
 		},
 	}
 
@@ -73,6 +125,7 @@ func TestConverter(t *testing.T) {
 				t.Skip()
 			}
 
+			tt.AssertNoErr(t, err)
 			tt.AssertEqual(t, v.Interface(), test.expectedOutput)
 		})
 	}
