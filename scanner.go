@@ -42,14 +42,9 @@ type Field struct {
 	IsEmbeded bool
 }
 
-// Decode reads from the input decoder in order to fill the
-// attributes of an target struct.
-func Decode(targetStruct interface{}, decoder TagDecoder) error {
-	t, v, fields, err := getStructInfo(targetStruct)
-	if err != nil {
-		return err
-	}
-
+// Private helper/impl.
+// Called from generic version or `interface{}` version after checking null pointer or not
+func decode(t reflect.Type, v reflect.Value, fields []Field, decoder TagDecoder) error {
 	for _, field := range fields {
 		rawValue, err := decoder.DecodeField(field)
 		if err != nil {
@@ -120,32 +115,46 @@ func Decode(targetStruct interface{}, decoder TagDecoder) error {
 	return nil
 }
 
+// Decode reads from the input decoder in order to fill the
+// attributes of an target struct.
+func Decode(targetStruct interface{}, decoder TagDecoder) error {
+	// For the `interface{}` version we can't call `New()` as we don't have a type to give it
+	// So we just call the fucntions directly
+
+	v := reflect.ValueOf(targetStruct)
+	t := v.Type()
+	if t.Kind() != reflect.Ptr {
+		return fmt.Errorf("expected struct pointer but got: %s", t.String())
+	}
+	t = t.Elem()
+
+	if t.Kind() != reflect.Struct {
+		return fmt.Errorf("can only get struct info from structs, but got: %#v", targetStruct)
+	}
+
+	fields, err := getStructInfo(t)
+	if err != nil {
+		return err
+	}
+
+	if v.IsNil() {
+		return fmt.Errorf("expected non-nil pointer to struct, but got: %#v", targetStruct)
+	}
+
+	return decode(t, v, fields, decoder)
+}
+
 // This cache is kept as a pkg variable
 // because the total number of types on a program
 // should be finite. So keeping a single cache here
 // works fine.
 var structInfoCache = &sync.Map{}
 
-func getStructInfo(targetStruct interface{}) (reflect.Type, reflect.Value, []Field, error) {
-	v := reflect.ValueOf(targetStruct)
-	t := v.Type()
-	if t.Kind() != reflect.Ptr {
-		return nil, reflect.Value{}, nil, fmt.Errorf("expected struct pointer but got: %T", targetStruct)
-	}
-	if v.IsNil() {
-		return nil, reflect.Value{}, nil, fmt.Errorf("expected non-nil pointer to struct, but got: %#v", targetStruct)
-	}
-
-	t = t.Elem()
-
-	if t.Kind() != reflect.Struct {
-		return nil, reflect.Value{}, nil, fmt.Errorf("can only get struct info from structs, but got: %#v", targetStruct)
-	}
-
+func getStructInfo(t reflect.Type) ([]Field, error) {
 	data, _ := structInfoCache.Load(t)
 	info, ok := data.([]Field)
 	if ok {
-		return t, v, info, nil
+		return info, nil
 	}
 
 	info = []Field{}
@@ -158,7 +167,7 @@ func getStructInfo(targetStruct interface{}) (reflect.Type, reflect.Value, []Fie
 
 		parsedTags, err := tags.ParseTags(field.Tag)
 		if err != nil {
-			return nil, reflect.Value{}, nil, err
+			return nil, err
 		}
 
 		info = append(info, Field{
@@ -174,5 +183,38 @@ func getStructInfo(targetStruct interface{}) (reflect.Type, reflect.Value, []Fie
 	}
 
 	structInfoCache.Store(t, info)
-	return t, v, info, nil
+	return info, nil
+}
+
+type Scanner[T any] struct {
+	Fields  []Field
+	Type    reflect.Type
+	Decoder TagDecoder
+}
+
+// New creates a new decoder for the given struct type.
+//
+// The type `T` should not be a pointer type
+func New[T any](decoder TagDecoder) (*Scanner[T], error) {
+	var dummy T
+	s := &Scanner[T]{Decoder: decoder}
+	t := reflect.TypeOf(dummy)
+	fields, err := getStructInfo(t)
+	if err != nil {
+		return nil, err
+	}
+	s.Type = t
+	s.Fields = fields
+	return s, nil
+}
+
+// Decode reads from the input decoder in order to fill the
+// attributes of an target struct.
+//
+// This function takes a pointer (`*T`) to the type.
+func (s *Scanner[T]) Decode(targetStruct *T) error {
+	if targetStruct == nil {
+		return fmt.Errorf("expected non-nil pointer to struct, but got: %#v", targetStruct)
+	}
+	return decode(s.Type, reflect.ValueOf(targetStruct), s.Fields, s.Decoder)
 }

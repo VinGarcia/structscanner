@@ -450,6 +450,23 @@ func TestDecode(t *testing.T) {
 			})
 		}
 	})
+
+	t.Run("simple generic test", func(t *testing.T) {
+		decoder := ss.FuncTagDecoder(func(field ss.Field) (interface{}, error) {
+			return "fake-value-for-string", nil
+		})
+
+		type Output struct {
+			Attr1 string `env:"attr1"`
+		}
+		var output Output
+		scanner, err := ss.New[Output](decoder)
+		tt.AssertNoErr(t, err)
+
+		err = scanner.Decode(&output)
+		tt.AssertNoErr(t, err)
+		tt.AssertEqual(t, output.Attr1, "fake-value-for-string")
+	})
 }
 
 func intPtr(i int) *int {

@@ -170,6 +170,42 @@ func (e MapTagDecoder) DecodeField(info Field) (interface{}, error) {
 }
 ```
 
+If you wish to use the Field info (names, tags, type etc) elsewhere or if you
+have a large number of the same type if items to decode then creating a scanner
+object is the way to go. This also makes use of Go 1.18+'s generics so if you
+pass the wrong type of object in it is a compile error.
+
+
+```golang
+decoder := structscanner.FuncTagDecoder(...)
+
+type User struct {
+	Name    string `map:"name"`
+	HomeDir string `map:"home"`
+}
+
+scanner, err := structscanner.New[User](decoder)
+if err != nil {
+	panic(err)
+}
+
+for _, field := range scanner.Fields {
+	fmt.Println("Field %q has tags %v", field.Name, field.Tags)
+}
+```
+
+Note that structscanner caches the type reflection so that calling
+`structscanner.Decode()` many times will be quiet efficient (i.e. reflection on
+the struct will only be performed once per program invocation). However if you
+would like there is a `Decode` method on the `Scanner` type:
+
+```golang
+for _, row := range getData() {
+	var user User;
+	err = scanner.Decode(&user)
+}
+```
+
 ## License
 
 This project was put into public domain, which means you can copy, use and modify
