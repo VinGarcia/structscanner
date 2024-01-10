@@ -1,9 +1,12 @@
 package structscanner_test
 
 import (
+	"errors"
 	"reflect"
+	"strconv"
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	ss "github.com/vingarcia/structscanner"
 	tt "github.com/vingarcia/structscanner/internal/testtools"
 )
@@ -449,6 +452,67 @@ func TestDecode(t *testing.T) {
 				tt.AssertErrContains(t, err, test.expectErrToContain...)
 			})
 		}
+	})
+
+	t.Run("wrap errors correctly", func(t *testing.T) {
+
+		t.Run("wrap error from Decoder", func(t *testing.T) {
+			// Use a int parse error as the type example
+			decoder := ss.FuncTagDecoder(func(field ss.Field) (interface{}, error) {
+				return strconv.ParseInt("not-an-int", 10, 0)
+			})
+			err := ss.Decode(&struct {
+				A int `a:""`
+			}{}, decoder)
+
+			var parseErr *strconv.NumError
+			require.True(t, errors.As(err, &parseErr), "error %#v should wrap %T", err, parseErr)
+			require.Equal(t, parseErr.Err, strconv.ErrSyntax)
+		})
+
+		t.Run("wrap error from nested Decoder", func(t *testing.T) {
+			// Use a int parse error as the type example
+			var decoder ss.TagDecoder
+			decoder = ss.FuncTagDecoder(func(field ss.Field) (interface{}, error) {
+				if field.Name == "A" {
+					// Recurse
+					return decoder, nil
+				}
+				return strconv.ParseInt("not-an-int", 10, 0)
+			})
+
+			type Outer struct {
+				A struct{ B int }
+			}
+			err := ss.Decode(&Outer{}, decoder)
+
+			require.Error(t, err)
+			// Sanity check: the outer error _does_ contain the string we don't want to see in the wrapped error
+			require.Contains(t, err.Error(), "error decoding nested field")
+
+			var parseErr *strconv.NumError
+			require.True(t, errors.As(err, &parseErr), "error %#v should wrap %T", err, parseErr)
+			require.Equal(t, parseErr.Err, strconv.ErrSyntax)
+		})
+
+		t.Run("wrap error from slice conversion", func(t *testing.T) {
+			// Use a int parse error as the type example
+			decoder := ss.FuncTagDecoder(func(field ss.Field) (interface{}, error) {
+				return []string{"not-an-int"}, nil
+			})
+			err := ss.Decode(&struct {
+				A []int `a:""`
+			}{}, decoder)
+
+			require.Error(t, err)
+			// Sanity check: the outer error _does_ contain the string we don't want to see in the wrapped error
+			require.Contains(t, err.Error(), "error converting A[0]")
+
+			// In this case, it should just be a wrapped sting error
+			wrapped := errors.Unwrap(err)
+			require.NotSame(t, wrapped, err)
+			require.NotContains(t, wrapped.Error(), "error converting A[0]")
+		})
 	})
 }
 
