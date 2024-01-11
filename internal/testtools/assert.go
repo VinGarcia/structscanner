@@ -12,18 +12,21 @@ import (
 // AssertEqual will compare the got argument with the expected argument
 // and fail the test with an appropriate error message if they don't match.
 func AssertEqual(t *testing.T, got interface{}, expected interface{}, msg ...interface{}) {
+	t.Helper()
 	require.Equal(t, expected, got, msg...)
 }
 
 // AssertNotEqual will compare the got argument with the expected argument
 // and fail the test with an appropriate error message if they match.
 func AssertNotEqual(t *testing.T, got interface{}, expected interface{}, msg ...interface{}) {
+	t.Helper()
 	require.NotEqual(t, expected, got, msg...)
 }
 
 // AssertNoErr will check if the input error is nil, and if not
 // it will fail the test with an appropriate error message.
 func AssertNoErr(t *testing.T, err error) {
+	t.Helper()
 	require.Equal(t, nil, err, "received unexpected error: %s", err)
 }
 
@@ -34,6 +37,7 @@ func AssertNoErr(t *testing.T, err error) {
 // In case either assertion fails it will fail the test with
 // an appropriate error message.
 func AssertErrContains(t *testing.T, err error, substrs ...string) {
+	t.Helper()
 	require.NotEqual(t, nil, err, "expected an error but the error is nil")
 
 	msg := err.Error()
@@ -50,6 +54,7 @@ func AssertErrContains(t *testing.T, err error, substrs ...string) {
 // AssertApproxDuration checks if the durations v1 and v2 are close up to the tolerance specified.
 // The format and args slice can be used for generating an appropriate error message if they are not.
 func AssertApproxDuration(t *testing.T, tolerance time.Duration, v1, v2 time.Duration, format string, args ...interface{}) {
+	t.Helper()
 	diff := v1 - v2
 	if diff < 0 {
 		diff = -diff
@@ -61,6 +66,7 @@ func AssertApproxDuration(t *testing.T, tolerance time.Duration, v1, v2 time.Dur
 // AssertApproxTime checks if the times v1 and v2 are close up to the tolerance specified.
 // The format and args slice can be used for generating an appropriate error message if they are not.
 func AssertApproxTime(t *testing.T, tolerance time.Duration, v1, v2 time.Time, format string, args ...interface{}) {
+	t.Helper()
 	diff := v1.Sub(v2)
 	if diff < 0 {
 		diff = -diff
