@@ -42,6 +42,26 @@ type Field struct {
 	IsEmbeded bool
 }
 
+type StructInfo struct {
+	Fields []Field
+}
+
+// GetStructInfo will return (and cache) informatoin about the given struct.
+//
+// `targetStruct` should either be a pointer to a struct type, or a
+// reflect.Type object of the structure in question
+func GetStructInfo(targetStruct interface{}) (si StructInfo, err error) {
+	if t, ok := targetStruct.(reflect.Type); ok {
+		if t.Kind() == reflect.Ptr {
+			t = t.Elem()
+		}
+		si.Fields, err = getStructInfoForType(t)
+	} else {
+		_, _, si.Fields, err = getStructInfo(targetStruct)
+	}
+	return
+}
+
 // Decode reads from the input decoder in order to fill the
 // attributes of an target struct.
 func Decode(targetStruct interface{}, decoder TagDecoder) error {
@@ -129,6 +149,7 @@ var structInfoCache = &sync.Map{}
 func getStructInfo(targetStruct interface{}) (reflect.Type, reflect.Value, []Field, error) {
 	v := reflect.ValueOf(targetStruct)
 	t := v.Type()
+
 	if t.Kind() != reflect.Ptr {
 		return nil, reflect.Value{}, nil, fmt.Errorf("expected struct pointer but got: %T", targetStruct)
 	}
@@ -137,15 +158,22 @@ func getStructInfo(targetStruct interface{}) (reflect.Type, reflect.Value, []Fie
 	}
 
 	t = t.Elem()
-
 	if t.Kind() != reflect.Struct {
 		return nil, reflect.Value{}, nil, fmt.Errorf("can only get struct info from structs, but got: %#v", targetStruct)
+	}
+	fields, err := getStructInfoForType(t)
+	return t, v, fields, err
+}
+
+func getStructInfoForType(t reflect.Type) ([]Field, error) {
+	if t.Kind() != reflect.Struct {
+		return nil, fmt.Errorf("can only get struct info from structs, but got: %#v", t.String())
 	}
 
 	data, _ := structInfoCache.Load(t)
 	info, ok := data.([]Field)
 	if ok {
-		return t, v, info, nil
+		return info, nil
 	}
 
 	info = []Field{}
@@ -158,7 +186,7 @@ func getStructInfo(targetStruct interface{}) (reflect.Type, reflect.Value, []Fie
 
 		parsedTags, err := tags.ParseTags(field.Tag)
 		if err != nil {
-			return nil, reflect.Value{}, nil, err
+			return nil, err
 		}
 
 		info = append(info, Field{
@@ -174,5 +202,5 @@ func getStructInfo(targetStruct interface{}) (reflect.Type, reflect.Value, []Fie
 	}
 
 	structInfoCache.Store(t, info)
-	return t, v, info, nil
+	return info, nil
 }

@@ -452,6 +452,43 @@ func TestDecode(t *testing.T) {
 	})
 }
 
+func TestGetStructInfo(t *testing.T) {
+	type MyStruct struct {
+		A int
+	}
+
+	t.Run("should work for a struct pointer", func(t *testing.T) {
+		var s MyStruct
+		si, err := ss.GetStructInfo(&s)
+		tt.AssertNoErr(t, err)
+		tt.AssertEqual(t, len(si.Fields), 1)
+	})
+
+	t.Run("should fail for a struct", func(t *testing.T) {
+		var s MyStruct
+		_, err := ss.GetStructInfo(s)
+		tt.AssertErrContains(t, err, "struct pointer", "MyStruct")
+	})
+
+	t.Run("should work for reflect.Type", func(t *testing.T) {
+		typ := reflect.TypeOf(MyStruct{})
+		si, err := ss.GetStructInfo(typ)
+		tt.AssertNoErr(t, err)
+		tt.AssertEqual(t, len(si.Fields), 1)
+	})
+	t.Run("should work for reflect.Type of a struct pointer", func(t *testing.T) {
+		typ := reflect.TypeOf(&MyStruct{})
+		si, err := ss.GetStructInfo(typ)
+		tt.AssertNoErr(t, err)
+		tt.AssertEqual(t, len(si.Fields), 1)
+	})
+	t.Run("should fa for reflect.Type of not a struct", func(t *testing.T) {
+		typ := reflect.TypeOf(1)
+		_, err := ss.GetStructInfo(typ)
+		tt.AssertErrContains(t, err, "can only get struct info from structs", `"int"`)
+	})
+}
+
 func intPtr(i int) *int {
 	return &i
 }
