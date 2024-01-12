@@ -46,7 +46,7 @@ type StructInfo struct {
 	Fields []Field
 }
 
-// GetStructInfo will return (and cache) informatoin about the given struct.
+// GetStructInfo will return (and cache) information about the given struct.
 //
 // `targetStruct` should either be a pointer to a struct type, or a
 // reflect.Type object of the structure in question
