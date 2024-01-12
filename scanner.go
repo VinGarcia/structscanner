@@ -52,13 +52,14 @@ type StructInfo struct {
 // reflect.Type object of the structure in question
 func GetStructInfo(targetStruct interface{}) (si StructInfo, err error) {
 	if t, ok := targetStruct.(reflect.Type); ok {
-		if t.Kind() == reflect.Ptr {
-			t = t.Elem()
+		if t.Kind() != reflect.Ptr {
+			t = reflect.PointerTo(t)
 		}
-		si.Fields, err = getStructInfoForType(t)
-	} else {
-		_, _, si.Fields, err = getStructInfo(targetStruct)
+		_, si.Fields, err = getStructInfoForType(t)
+		return si, err
 	}
+
+	_, _, si.Fields, err = getStructInfo(targetStruct)
 	return si, err
 }
 
@@ -148,32 +149,34 @@ var structInfoCache = &sync.Map{}
 
 func getStructInfo(targetStruct interface{}) (reflect.Type, reflect.Value, []Field, error) {
 	v := reflect.ValueOf(targetStruct)
-	t := v.Type()
 
-	if t.Kind() != reflect.Ptr {
-		return nil, reflect.Value{}, nil, fmt.Errorf("expected struct pointer but got: %T", targetStruct)
+	t, fields, err := getStructInfoForType(v.Type())
+	if err != nil {
+		return nil, reflect.Value{}, nil, err
 	}
+
+	// Only validate v after parsing the type, otherwise the call to v.IsNil() might panic.
 	if v.IsNil() {
 		return nil, reflect.Value{}, nil, fmt.Errorf("expected non-nil pointer to struct, but got: %#v", targetStruct)
 	}
 
-	t = t.Elem()
-	if t.Kind() != reflect.Struct {
-		return nil, reflect.Value{}, nil, fmt.Errorf("can only get struct info from structs, but got: %#v", targetStruct)
-	}
-	fields, err := getStructInfoForType(t)
 	return t, v, fields, err
 }
 
-func getStructInfoForType(t reflect.Type) ([]Field, error) {
-	if t.Kind() != reflect.Struct {
-		return nil, fmt.Errorf("can only get struct info from structs, but got: %#v", t.String())
-	}
-
-	data, _ := structInfoCache.Load(t)
+func getStructInfoForType(ptrType reflect.Type) (reflect.Type, []Field, error) {
+	data, _ := structInfoCache.Load(ptrType)
 	info, ok := data.([]Field)
 	if ok {
-		return info, nil
+		return ptrType.Elem(), info, nil
+	}
+
+	if ptrType.Kind() != reflect.Ptr {
+		return nil, nil, fmt.Errorf("expected struct pointer but got: %v", ptrType)
+	}
+
+	t := ptrType.Elem()
+	if t.Kind() != reflect.Struct {
+		return nil, nil, fmt.Errorf("can only get struct info from structs, but got: %s", ptrType)
 	}
 
 	info = []Field{}
@@ -186,7 +189,7 @@ func getStructInfoForType(t reflect.Type) ([]Field, error) {
 
 		parsedTags, err := tags.ParseTags(field.Tag)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		info = append(info, Field{
@@ -201,6 +204,6 @@ func getStructInfoForType(t reflect.Type) ([]Field, error) {
 		})
 	}
 
-	structInfoCache.Store(t, info)
-	return info, nil
+	structInfoCache.Store(ptrType, info)
+	return t, info, nil
 }

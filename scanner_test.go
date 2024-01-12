@@ -545,7 +545,7 @@ func TestGetStructInfo(t *testing.T) {
 	t.Run("should fail if input type is not a kind of struct or struct pointer", func(t *testing.T) {
 		typ := reflect.TypeOf(1)
 		_, err := ss.GetStructInfo(typ)
-		tt.AssertErrContains(t, err, "can only get struct info from structs", `"int"`)
+		tt.AssertErrContains(t, err, "can only get struct info from structs", "int")
 	})
 }
 
