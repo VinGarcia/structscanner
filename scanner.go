@@ -53,7 +53,7 @@ func Decode(targetStruct interface{}, decoder TagDecoder) error {
 	for _, field := range fields {
 		rawValue, err := decoder.DecodeField(field)
 		if err != nil {
-			return fmt.Errorf("error decoding field %v: %s", t.Field(field.idx), err)
+			return fmt.Errorf("error decoding field %v: %w", t.Field(field.idx), err)
 		}
 
 		if rawValue == nil {
@@ -105,7 +105,7 @@ func Decode(targetStruct interface{}, decoder TagDecoder) error {
 
 			err := Decode(fieldAddr.Interface(), decoder)
 			if err != nil {
-				return fmt.Errorf("error decoding nested field '%s': %s", t.Field(field.idx).Name, err)
+				return fmt.Errorf("error decoding nested field %q: %w", t.Field(field.idx).Name, err)
 			}
 			continue
 		}

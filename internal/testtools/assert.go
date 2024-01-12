@@ -16,6 +16,12 @@ func AssertEqual(t *testing.T, got interface{}, expected interface{}, msg ...int
 	require.Equal(t, expected, got, msg...)
 }
 
+// True asserts that the specified value is true
+// and fail the test with an appropriate error message if they don't match.
+func AssertTrue(t *testing.T, value bool, msg ...interface{}) {
+	require.True(t, value, msg...)
+}
+
 // AssertNotEqual will compare the got argument with the expected argument
 // and fail the test with an appropriate error message if they match.
 func AssertNotEqual(t *testing.T, got interface{}, expected interface{}, msg ...interface{}) {

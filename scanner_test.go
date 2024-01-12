@@ -1,7 +1,9 @@
 package structscanner_test
 
 import (
+	"errors"
 	"reflect"
+	"strconv"
 	"testing"
 
 	ss "github.com/vingarcia/structscanner"
@@ -449,6 +451,64 @@ func TestDecode(t *testing.T) {
 				tt.AssertErrContains(t, err, test.expectErrToContain...)
 			})
 		}
+	})
+
+	t.Run("wrap errors correctly", func(t *testing.T) {
+
+		t.Run("wrap error from Decoder", func(t *testing.T) {
+			// Use a int parse error as the type example
+			decoder := ss.FuncTagDecoder(func(field ss.Field) (interface{}, error) {
+				return strconv.ParseInt("not-an-int", 10, 0)
+			})
+			err := ss.Decode(&struct {
+				A int `a:""`
+			}{}, decoder)
+
+			var parseErr *strconv.NumError
+			tt.AssertTrue(t, errors.As(err, &parseErr), "error %#v should wrap %T", err, parseErr)
+			tt.AssertEqual(t, parseErr.Err, strconv.ErrSyntax)
+		})
+
+		t.Run("wrap error from nested Decoder", func(t *testing.T) {
+			// Use a int parse error as the type example
+			var decoder ss.TagDecoder
+			decoder = ss.FuncTagDecoder(func(field ss.Field) (interface{}, error) {
+				if field.Name == "A" {
+					// Recurse
+					return decoder, nil
+				}
+				return strconv.ParseInt("not-an-int", 10, 0)
+			})
+
+			type Outer struct {
+				A struct{ B int }
+			}
+			err := ss.Decode(&Outer{}, decoder)
+
+			// Sanity check: the outer error _does_ contain the string we don't want to see in the wrapped error
+			tt.AssertErrContains(t, err, "error decoding nested field")
+
+			var parseErr *strconv.NumError
+			tt.AssertTrue(t, errors.As(err, &parseErr), "error %#v should wrap %T", err, parseErr)
+			tt.AssertEqual(t, parseErr.Err, strconv.ErrSyntax)
+		})
+
+		t.Run("wrap error from slice conversion", func(t *testing.T) {
+			// Use a int parse error as the type example
+			decoder := ss.FuncTagDecoder(func(field ss.Field) (interface{}, error) {
+				return []string{"not-an-int"}, nil
+			})
+			err := ss.Decode(&struct {
+				A []int `a:""`
+			}{}, decoder)
+
+			// Sanity check: the outer error _does_ contain the string we don't want to see in the wrapped error
+			tt.AssertErrContains(t, err, "error converting A[0]")
+
+			// In this case, it should just be a wrapped sting error
+			wrapped := errors.Unwrap(err)
+			tt.AssertNotEqual(t, wrapped, nil)
+		})
 	})
 }
 
