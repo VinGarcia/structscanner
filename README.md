@@ -170,6 +170,50 @@ func (e MapTagDecoder) DecodeField(info Field) (interface{}, error) {
 }
 ```
 
+If you wish to use the Field info (names, tags, type etc) elsewhere you can use the `GetStructInfo()` function.
+
+```golang
+
+type User struct {
+	Name    string `map:"name"`
+	HomeDir string `map:"home"`
+}
+
+info, err := structscanner.GetStructInfo(&User{})
+if err != nil {
+	panic(err)
+}
+
+for _, field := range info.Fields {
+	fmt.Println("Field %q has tags %v", field.Name, field.Tags)
+}
+```
+
+It is possible to pass a `reflection.Type` object to `GetStructInfo`, which is particularly useful for nested structs:
+
+```golang
+
+type Address struct {}
+type User struct {
+	Name    string `map:"name"`
+	HomeDir Address `map:"home"`
+}
+
+info, err := structscanner.GetStructInfo(&User{})
+if err != nil {
+	panic(err)
+}
+
+for _, field := range info.Fields {
+	fmt.Println("Field %q has tags %v", field.Name, field.Tags)
+	if field.Kind == reflect.Struct {
+		nestedInfo, err := structscanner.GetStructInfo(field.Type)
+		fmt.Println("Nested Field %q has %d fields", field.Name, len(nestedInfo.Fields))
+	}
+}
+```
+
+
 ## License
 
 This project was put into public domain, which means you can copy, use and modify
