@@ -59,7 +59,7 @@ func GetStructInfo(targetStruct interface{}) (si StructInfo, err error) {
 	} else {
 		_, _, si.Fields, err = getStructInfo(targetStruct)
 	}
-	return
+	return si, err
 }
 
 // Decode reads from the input decoder in order to fill the
