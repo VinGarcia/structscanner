@@ -164,10 +164,9 @@ func getStructInfo(targetStruct interface{}) (reflect.Type, reflect.Value, []Fie
 }
 
 func getStructInfoForType(ptrType reflect.Type) (reflect.Type, []Field, error) {
-	data, _ := structInfoCache.Load(ptrType)
-	info, ok := data.([]Field)
-	if ok {
-		return ptrType.Elem(), info, nil
+	data, found := structInfoCache.Load(ptrType)
+	if found {
+		return ptrType.Elem(), data.([]Field), nil
 	}
 
 	if ptrType.Kind() != reflect.Ptr {
@@ -179,7 +178,7 @@ func getStructInfoForType(ptrType reflect.Type) (reflect.Type, []Field, error) {
 		return nil, nil, fmt.Errorf("can only get struct info from structs, but got: %s", ptrType)
 	}
 
-	info = []Field{}
+	info := []Field{}
 	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
 		// If it is unexported:
