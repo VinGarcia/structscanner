@@ -27,6 +27,20 @@ directly if you want.
 But the interesting part is that both were written
 in very few lines of code, so check that out too.
 
+## Deprecation Notice
+
+I have created a V2 of this project with the same purpose,
+but with a significantly simpler API called "StructIterator":
+
+https://github.com/vingarcia/structi
+
+While this repo is very well tested and should remain stable
+I believe the `structi` project is much simpler to reason about
+and also more flexible.
+
+I call it a V2 because it uses much of the same internal logic,
+but you'll see that it is significantly different and easier to use.
+
 ## Understanding the Project:
 
 ![image showing that the TagDecoder interface is a wrapper that
